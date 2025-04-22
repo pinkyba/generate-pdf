@@ -27,11 +27,16 @@ Merge pdf: setasign/fpdf
 
 # Environment setup
 GOOGLE_CLIENT_ID=
+
 GOOGLE_CLIENT_SECRET=
+
 GOOGLE_REDIRECT_URI=
 
+
 GMAIL_ADDRESS_FROM=
+
 GMAIL_ADDRESS_TO=
+
 
 # Runtime performance
   2025-04-22 00:26:36 App\Jobs\DispatchPdfJobs ............................................................ RUNNING
