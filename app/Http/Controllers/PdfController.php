@@ -7,8 +7,8 @@ use Google_Client;
 use Google_Service_Gmail;
 use Google_Service_Gmail_Message;
 use Smalot\PdfParser\Parser;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use App\Jobs\DispatchPdfJobs;
 use Log;
 
 class PdfController extends Controller
@@ -55,7 +55,6 @@ class PdfController extends Controller
             );
             $sent = $gmail->users_messages->send('me', $raw);
             $threadIds[] = $sent->getThreadId();
-            usleep(500000);
         }
 
         return $threadIds;
@@ -78,40 +77,42 @@ class PdfController extends Controller
         ]);
     }
 
-    private function fetchAllThreadsHtml(Google_Service_Gmail $gmail, array $threadIds): string
-    {
-        $html = '<h1>All Email Threads</h1>';
+    // private function fetchAllThreadsHtml(Google_Service_Gmail $gmail, array $threadIds): string
+    // {
+    //     $html = '<h1>All Email Threads</h1>';
 
-        foreach ($threadIds as $index => $threadId) {
-            $thread = $gmail->users_threads->get('me', $threadId);
-            $html .= "<h2>Thread #".($index + 1)."</h2>";
+    //     foreach ($threadIds as $index => $threadId) {
+    //         $thread = $gmail->users_threads->get('me', $threadId);
+    //         $html .= "<h2>Thread #".($index + 1)."</h2>";
 
-            foreach ($thread->getMessages() as $msg) {
-                $headers = collect($msg->getPayload()->getHeaders())
-                    ->keyBy('name')
-                    ->map->value;
+    //         foreach ($thread->getMessages() as $msg) {
+    //             $headers = collect($msg->getPayload()->getHeaders())
+    //                 ->keyBy('name')
+    //                 ->map->value;
 
-                $body = base64_decode(str_replace(['-', '_'], ['+', '/'], $msg->getPayload()->getBody()->getData()));
-                $html .= "<h3>{$headers['Subject']} ({$headers['From']} → {$headers['To']})</h3>";
-                $html .= "<pre>" . htmlentities(substr($body, 0, 2000)) . "</pre><hr>";
-            }
-        }
+    //             $body = base64_decode(str_replace(['-', '_'], ['+', '/'], $msg->getPayload()->getBody()->getData()));
+    //             $html .= "<h3>{$headers['Subject']} ({$headers['From']} → {$headers['To']})</h3>";
+    //             $html .= "<pre>" . htmlentities(substr($body, 0, 2000)) . "</pre><hr>";
+    //         }
+    //     }
 
-        return $html;
-    }
+    //     return $html;
+    // }
 
-    private function makePdf(string $html): void
-    {
-        $targetSize = 70 * 1024 * 1024;
-        $filler = str_repeat('<p style="page-break-after: always;">.</p>', 1000);
+    // private function makePdf(string $html): void
+    // {
+    //     ini_set('max_execution_time', 3600); // 1 hour
+    //     set_time_limit(3600);
+    //     $targetSize = 70 * 1024 * 1024;
+    //     $filler = str_repeat('<p style="page-break-after: always;">.</p>', 1000);
 
-        while (strlen($html) < $targetSize) {
-            $html .= $filler;
-        }
+    //     while (strlen($html) < $targetSize) {
+    //         $html .= $filler;
+    //     }
 
-        $pdf = PDF::loadHTML($html);
-        $pdf->save(storage_path('app/public/emails.pdf'));
-    }
+    //     $pdf = PDF::loadHTML($html);
+    //     $pdf->save(storage_path('app/public/emails.pdf'));
+    // }
 
     public function sendEmail() {
         $authUrl = $this->client->createAuthUrl();
@@ -124,18 +125,19 @@ class PdfController extends Controller
             return redirect('/')->with('error', 'Authorization code not available');
         }
 
-        // Exchange the code for access token
         $token = $this->client->fetchAccessTokenWithAuthCode($request->query('code'));
         $this->client->setAccessToken($token);
 
         $gmail = new Google_Service_Gmail($this->client);
         $content = session('email_content');
+
         try {
             $threadIds = $this->sendEmailThread($gmail, $content);
-            $html = $this->fetchAllThreadsHtml($gmail, $threadIds);
-            $this->makePdf($html);
+            $accessToken = $this->client->getAccessToken();
+            DispatchPdfJobs::dispatch($accessToken, $threadIds);
 
-            return response()->download(storage_path('app/public/emails.pdf'));
+            return response()->json(['status' => 'PDF generation started. Please check the status later.']);
+
         } catch (\Exception $e) {
             return 'An error occurred: ' . $e->getMessage();
         }
