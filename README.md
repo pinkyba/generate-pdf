@@ -27,22 +27,39 @@ Merge pdf: setasign/fpdf
 
 # Runtime performance
   2025-04-22 00:26:36 App\Jobs\DispatchPdfJobs ............................................................ RUNNING
+  
   2025-04-22 00:26:37 App\Jobs\DispatchPdfJobs ...................................................... 325.62ms DONE
+  
   2025-04-22 00:26:37 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
   2025-04-22 00:27:42 App\Jobs\GeneratePdfChunkJob ..................................................... 1m 4s DONE
+
   2025-04-22 00:27:42 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
   2025-04-22 00:28:46 App\Jobs\GeneratePdfChunkJob ..................................................... 1m 3s DONE
+  
   2025-04-22 00:28:46 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
   2025-04-22 00:29:49 App\Jobs\GeneratePdfChunkJob ..................................................... 1m 3s DONE
+  
   2025-04-22 00:29:50 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
   2025-04-22 00:30:13 App\Jobs\GeneratePdfChunkJob ....................................................... 23s DONE
+  
   2025-04-22 00:30:13 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
   2025-04-22 00:31:42 App\Jobs\GeneratePdfChunkJob .................................................... 1m 28s DONE
+  
   2025-04-22 00:31:42 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
   2025-04-22 00:32:19 App\Jobs\GeneratePdfChunkJob ....................................................... 37s DONE
+  
   2025-04-22 00:32:19 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
   2025-04-22 00:32:46 App\Jobs\GeneratePdfChunkJob ....................................................... 26s DONE
+  
   2025-04-22 00:32:46 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
   2025-04-22 00:33:10 App\Jobs\GeneratePdfChunkJob ....................................................... 23s DONE
   2025-04-22 00:33:10 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
   2025-04-22 00:33:33 App\Jobs\GeneratePdfChunkJob ....................................................... 23s DONE
