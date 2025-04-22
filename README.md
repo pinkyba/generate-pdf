@@ -12,7 +12,8 @@ Laravel version: ^10.10
 PHP version: ^8.1
 
 
-Dependencies:
+# Dependencies:
+
 Gmail API: google/apiclient
 
 PDF export: laravel-snappy
