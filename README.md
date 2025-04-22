@@ -1,66 +1,90 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PDF Generation from Gmail Correspondence
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+1. Handling Large Files: I explored both DOMPDF and TCPDF for PDF generation, but these libraries are not ideal for processing large files due to performance limitations. For handling large files efficiently, Snappy (based on wkhtmltopdf) proved to be the best choice.
 
-## About Laravel
+2. Optimizing Performance: To enhance performance, I implemented a strategy where I chunked email threads and used Laravel jobs to process each chunk separately. Afterward, the chunks were re-merged into a single PDF. This approach significantly improved the processing time.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+3. Merging PDFs: While I experimented with setasign/FPDF for PDF merging, I found that using an external command, specifically Ghostscript, provides much better performance and is more suitable for handling large PDF files efficiently.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Laravel version: ^10.10
 
-## Learning Laravel
+PHP version: ^8.1
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# Dependencies:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Gmail API: google/apiclient
 
-## Laravel Sponsors
+PDF export: laravel-snappy
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Merge pdf: setasign/fpdf
 
-### Premium Partners
+# Run project
+1. git clone
+2. composer install
+4. php artisan serve & php artisan queue:work
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+# Environment setup
+GOOGLE_CLIENT_ID=
 
-## Contributing
+GOOGLE_CLIENT_SECRET=
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+GOOGLE_REDIRECT_URI=
 
-## Code of Conduct
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+GMAIL_ADDRESS_FROM=
 
-## Security Vulnerabilities
+GMAIL_ADDRESS_TO=
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-## License
+# Runtime performance
+  2025-04-22 00:26:36 App\Jobs\DispatchPdfJobs ............................................................ RUNNING
+  
+  2025-04-22 00:26:37 App\Jobs\DispatchPdfJobs ...................................................... 325.62ms DONE
+  
+  2025-04-22 00:26:37 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:27:42 App\Jobs\GeneratePdfChunkJob ..................................................... 1m 4s DONE
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+  2025-04-22 00:27:42 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:28:46 App\Jobs\GeneratePdfChunkJob ..................................................... 1m 3s DONE
+  
+  2025-04-22 00:28:46 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:29:49 App\Jobs\GeneratePdfChunkJob ..................................................... 1m 3s DONE
+  
+  2025-04-22 00:29:50 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:30:13 App\Jobs\GeneratePdfChunkJob ....................................................... 23s DONE
+  
+  2025-04-22 00:30:13 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:31:42 App\Jobs\GeneratePdfChunkJob .................................................... 1m 28s DONE
+  
+  2025-04-22 00:31:42 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:32:19 App\Jobs\GeneratePdfChunkJob ....................................................... 37s DONE
+  
+  2025-04-22 00:32:19 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:32:46 App\Jobs\GeneratePdfChunkJob ....................................................... 26s DONE
+  
+  2025-04-22 00:32:46 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:33:10 App\Jobs\GeneratePdfChunkJob ....................................................... 23s DONE
+  
+  2025-04-22 00:33:10 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:33:33 App\Jobs\GeneratePdfChunkJob ....................................................... 23s DONE
+  
+  2025-04-22 00:33:33 App\Jobs\GeneratePdfChunkJob ........................................................ RUNNING
+  
+  2025-04-22 00:33:56 App\Jobs\GeneratePdfChunkJob ....................................................... 22s DONE
+  
+  2025-04-22 00:33:56 App\Jobs\MergeChunksJob ............................................................. RUNNING
+  
+  2025-04-22 00:39:40 App\Jobs\MergeChunksJob ......................................................... 5m 44s DONE
+
+  
