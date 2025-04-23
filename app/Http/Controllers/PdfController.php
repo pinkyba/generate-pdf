@@ -6,14 +6,13 @@ use Illuminate\Http\Request;
 use Google_Client;
 use Google_Service_Gmail;
 use Google_Service_Gmail_Message;
-use Smalot\PdfParser\Parser;
+use Spatie\PdfToImage\Pdf;
 use Illuminate\Support\Facades\Storage;
 use App\Jobs\DispatchPdfJobs;
 use Log;
 
 class PdfController extends Controller
 {
-
     private $client;
     public function __construct() {
         $this->client = new Google_Client();
@@ -28,39 +27,56 @@ class PdfController extends Controller
 
     public function generatePdf()
     {
-        $content = $this->fetchContent(storage_path('app/content.pdf'));
+        $content = $this->buildHtmlFromStoredImages();
         session(['email_content' => $content]);
         return $this->sendEmail();
     }
 
-    private function fetchContent(string $path): string
+    private function buildHtmlFromStoredImages(): string
     {
-        $parser = new Parser();
-        $pdf = $parser->parseFile($path);
-        $text = $pdf->getText();
-        
-        return $text;
-    }
+        $directory = storage_path('app/public/pdf_pages');
+        $files = glob($directory . '/*.{jpg,jpeg,png}', GLOB_BRACE);
+        sort($files); 
 
-    private function sendEmailThread(Google_Service_Gmail $gmail, string $bodyText): array
-    {
-        $threadIds = [];
+        $html = "<div style='font-family: Arial, sans-serif;'>";
 
-        for ($i = 1; $i <= 25; $i++) {
-            $raw = $this->buildRawMessage(
-                env('GMAIL_ADDRESS_FROM'),
-                env('GMAIL_ADDRESS_TO'),
-                "Email thread #{$i}",
-                $bodyText
-            );
-            $sent = $gmail->users_messages->send('me', $raw);
-            $threadIds[] = $sent->getThreadId();
+        foreach ($files as $index => $filePath) {
+            $base64 = base64_encode(file_get_contents($filePath));
+            // Log::info("Encoded image size: " . strlen($base64));
+            $mime = mime_content_type($filePath) ?: 'image/jpeg';
+
+            $html .= "<div style='page-break-after: always; text-align: center; margin: 20px 0;'>
+                        <p><strong>Page " . ($index + 1) . "</strong></p>
+                        <img src='data:{$mime};base64,{$base64}' style='max-width:100%; height:auto;' />
+                    </div>";
         }
 
+        $html .= "</div>";
+        // file_put_contents(storage_path('app/public/email_preview.html'), $html);
+        return $html;
+    }
+
+
+    private function sendEmailThread(Google_Service_Gmail $gmail, string $bodyHtml): array
+    {
+        $threadIds = ['1965e155ac24fe84','1965e156cc1d9dfc','1965e157c9ce749b','1965e2db3fe2abd2','1965e2dc515b4608','1965e2dd5c427fbd','1965e2de4551cba4','1965e2df6fbd9ff3','1965e2e09d1be71a','1965e2e1953c8143','1965e2e291738872','1965e2e3a84a31c2','1965e2e4a8bf8d6c','1965e2e5cc349eaf','1965e2e6d16feb9c','1965e155ac24fe84','1965e156cc1d9dfc','1965e157c9ce749b','1965e273a97dfdb2','1965e274ba3435cf','1965e275a4d0db75','1965e276d054598d','1965e277d8364d26','1965e278c1d38a37','1965e279d83fb155'];
+        $threadId = null;
+
+        // for ($i = 1; $i <= 12; $i++) {
+        //     $from = ($i % 2 === 0) ? env('GMAIL_ADDRESS_TO') : env('GMAIL_ADDRESS_FROM');
+        //     $to   = ($i % 2 === 0) ? env('GMAIL_ADDRESS_FROM') : env('GMAIL_ADDRESS_TO');
+
+        //     $raw = $this->buildRawMessage($from, $to, "Email thread #{$i}", $bodyHtml, $threadId);
+        //     $sent = $gmail->users_messages->send('me', $raw);
+
+        //     $threadId = $sent->getThreadId();
+        //     $threadIds[] = $threadId;
+        // }
+        Log::info($threadIds);
         return $threadIds;
     }
 
-    private function buildRawMessage($from, $to, $subject, $body, $threadId = null): Google_Service_Gmail_Message
+    private function buildRawMessage($from, $to, $subject, $bodyHtml, $threadId = null): Google_Service_Gmail_Message
     {
         $raw = "From: {$from}\r\n";
         $raw .= "To: {$to}\r\n";
@@ -69,50 +85,14 @@ class PdfController extends Controller
             $raw .= "In-Reply-To: {$threadId}\r\n";
             $raw .= "References: {$threadId}\r\n";
         }
-        $raw .= "Content-Type: text/plain; charset=UTF-8\r\n\r\n";
-        $raw .= $body;
-    
+        $raw .= "MIME-Version: 1.0\r\n";
+        $raw .= "Content-Type: text/html; charset=UTF-8\r\n\r\n";
+        $raw .= $bodyHtml;
+
         return new Google_Service_Gmail_Message([
             'raw' => rtrim(strtr(base64_encode($raw), '+/', '-_'), '=')
         ]);
     }
-
-    // private function fetchAllThreadsHtml(Google_Service_Gmail $gmail, array $threadIds): string
-    // {
-    //     $html = '<h1>All Email Threads</h1>';
-
-    //     foreach ($threadIds as $index => $threadId) {
-    //         $thread = $gmail->users_threads->get('me', $threadId);
-    //         $html .= "<h2>Thread #".($index + 1)."</h2>";
-
-    //         foreach ($thread->getMessages() as $msg) {
-    //             $headers = collect($msg->getPayload()->getHeaders())
-    //                 ->keyBy('name')
-    //                 ->map->value;
-
-    //             $body = base64_decode(str_replace(['-', '_'], ['+', '/'], $msg->getPayload()->getBody()->getData()));
-    //             $html .= "<h3>{$headers['Subject']} ({$headers['From']} → {$headers['To']})</h3>";
-    //             $html .= "<pre>" . htmlentities(substr($body, 0, 2000)) . "</pre><hr>";
-    //         }
-    //     }
-
-    //     return $html;
-    // }
-
-    // private function makePdf(string $html): void
-    // {
-    //     ini_set('max_execution_time', 3600); // 1 hour
-    //     set_time_limit(3600);
-    //     $targetSize = 70 * 1024 * 1024;
-    //     $filler = str_repeat('<p style="page-break-after: always;">.</p>', 1000);
-
-    //     while (strlen($html) < $targetSize) {
-    //         $html .= $filler;
-    //     }
-
-    //     $pdf = PDF::loadHTML($html);
-    //     $pdf->save(storage_path('app/public/emails.pdf'));
-    // }
 
     public function sendEmail() {
         $authUrl = $this->client->createAuthUrl();
@@ -134,6 +114,7 @@ class PdfController extends Controller
         try {
             $threadIds = $this->sendEmailThread($gmail, $content);
             $accessToken = $this->client->getAccessToken();
+            // Log::info($threadIds);
             DispatchPdfJobs::dispatch($accessToken, $threadIds);
 
             return response()->json(['status' => 'PDF generation started. Please check the status later.']);

@@ -50,40 +50,53 @@ class GeneratePdfChunkJob implements ShouldQueue
 
     private function fetchAllThreadsHtml(Google_Service_Gmail $gmail, array $threadIds): string
     {
-        $html = '';
+        // Read the content of the pre-generated email preview HTML file
+        $emailPreviewHtml = file_get_contents(storage_path('app/public/email_preview.html'));
+
+        $html = '<h1>All Email Threads</h1>';
 
         foreach ($threadIds as $index => $threadId) {
             $thread = $gmail->users_threads->get('me', $threadId);
-            $html .= "<h2>Thread #" . ($index + 1) . "</h2>";
-
+            
+            // Loop through each message in the thread
             foreach ($thread->getMessages() as $msg) {
-                $headers = collect($msg->getPayload()->getHeaders())->keyBy('name')->map->value;
-                $body = base64_decode(strtr($msg->getPayload()->getBody()->getData(), '-_', '+/'));
-                $html .= "<h3>{$headers['Subject']} ({$headers['From']} → {$headers['To']})</h3>";
-                $html .= "<pre>" . htmlentities(substr($body, 0, 2000)) . "</pre><hr>";
+                $payload = $msg->getPayload();
+                $headers = collect($payload->getHeaders())->keyBy('name')->map->value;
+
+                // Add subject, from, and to to the email content
+                $html .= "<h3> Subject: {$headers['Subject']} </h3>";
+                $html .= "<h4> From: {$headers['From']} </h4>";
+                $html .= "<h4> To: {$headers['To']} </h4>";
+
+                // Add the pre-generated HTML content (email preview)
+                $html .= "<div style='border:1px solid #ccc; margin-bottom:20px; padding:10px;'>{$emailPreviewHtml}</div><hr>";
             }
         }
 
         return $html;
     }
 
+
+
     private function makeChunkPdf(string $threadHtml): void
     {
         $html = '';
 
-        for ($i = $this->start; $i < $this->start + $this->limit; $i++) {
-            $html .= "<div style='page-break-after: always;'><strong>Page #{$i}</strong>{$threadHtml}</div>";
-        }
+        // for ($i = $this->start; $i < $this->start + $this->limit; $i++) {
+        //     $html .= "<div style='page-break-after: always;'><strong>Page #{$i}</strong>{$threadHtml}</div>";
+        // }
+        $html .= "<div style='page-break-after: always;'><strong>Email #" . ($this->chunkIndex + 1) . "</strong>{$threadHtml}</div>";
 
-        PDF::setTimeout(120);
+        PDF::setTimeout(1200);
         PDF::setOption('print-media-type', false);
         $pdf = PDF::loadHTML($html);
+        Log::info('index: '.$this->chunkIndex);
         $filename = "emails_chunk_{$this->chunkIndex}.pdf";
         $path = storage_path("app/public/{$filename}");
 
         $pdf->save($path);
        
-        if ($this->chunkIndex == 9) {
+        if ($this->chunkIndex == 24) {
             MergeChunksJob::dispatch($this->chunkIndex+1); 
         }
     }

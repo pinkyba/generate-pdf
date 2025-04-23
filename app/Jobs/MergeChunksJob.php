@@ -54,10 +54,10 @@ class MergeChunksJob implements ShouldQueue
         if ($returnCode === 0) {
             Log::info("PDFs merged successfully to: $outputPath");
 
-            for ($i = 0; $i < $this->totalChunks; $i++) {
-                Storage::delete("public/emails_chunk_{$i}.pdf");
-                Storage::delete("chunks/done_{$i}.flag");
-            }
+            // for ($i = 0; $i < $this->totalChunks; $i++) {
+            //     Storage::delete("public/emails_chunk_{$i}.pdf");
+            //     Storage::delete("chunks/done_{$i}.flag");
+            // }
         } else {
             Log::error("Ghostscript failed with code $returnCode: " . implode("\n", $output));
         }
